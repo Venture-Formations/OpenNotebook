@@ -1,0 +1,55 @@
+name: Upstream Sync PR
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 10 * * 1"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    name: Open upstream merge PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout deployment branch
+        uses: actions/checkout@v4
+        with:
+          ref: railway
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge upstream main into sync branch
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/lfnovo/open-notebook.git
+          git fetch upstream main --tags
+          git checkout -B upstream-sync/railway railway
+          git merge --no-edit upstream/main
+
+      - name: Push sync branch
+        run: git push --force-with-lease origin upstream-sync/railway
+
+      - name: Create or update pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh pr view upstream-sync/railway --base railway >/dev/null 2>&1; then
+            gh pr edit upstream-sync/railway \
+              --base railway \
+              --title "Merge upstream main into railway" \
+              --body "Automated upstream sync PR. Review migrations, release notes, and CI before merging because production deploys automatically after merge."
+          else
+            gh pr create \
+              --base railway \
+              --head upstream-sync/railway \
+              --title "Merge upstream main into railway" \
+              --body "Automated upstream sync PR. Review migrations, release notes, and CI before merging because production deploys automatically after merge."
+          fi
