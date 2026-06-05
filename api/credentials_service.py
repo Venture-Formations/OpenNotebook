@@ -415,18 +415,16 @@ async def test_credential(credential_id: str) -> dict:
             from open_notebook.ai.zeroentropy import ZeroEntropyEmbeddingModel
 
             model = ZeroEntropyEmbeddingModel(model_name="zembed-1", config=config)
-            result = await model.aembed(["This is a test."])
-            if result and len(result) > 0:
+            try:
+                result = await model.aembed(["This is a test."])
                 return {
                     "provider": provider,
                     "success": True,
                     "message": f"Embedding dimensions: {len(result[0])}",
                 }
-            return {
-                "provider": provider,
-                "success": True,
-                "message": "Connection successful",
-            }
+            finally:
+                await model.aclose()
+                model.close()
 
         # Standard provider: use Esperanto to create and test
         from esperanto.factory import AIFactory

@@ -153,6 +153,46 @@ class TestGenerateEmbeddings:
             assert result[1] == [0.4, 0.5, 0.6]
             mock_model.aembed.assert_called_once_with(["text1", "text2"])
 
+    @pytest.mark.asyncio
+    async def test_embedding_kwargs_forwarded_only_to_zeroentropy(self):
+        """Provider-specific kwargs should not leak to generic embedders."""
+        from unittest.mock import AsyncMock, MagicMock, patch
+
+        mock_model = MagicMock()
+        mock_model.provider = "openai"
+        mock_model.aembed = AsyncMock(return_value=[[0.1, 0.2, 0.3]])
+
+        with patch(
+            "open_notebook.ai.models.model_manager.get_embedding_model",
+            new_callable=AsyncMock,
+            return_value=mock_model,
+        ):
+            await generate_embeddings(
+                ["search text"], embedding_kwargs={"input_type": "query"}
+            )
+            mock_model.aembed.assert_called_once_with(["search text"])
+
+    @pytest.mark.asyncio
+    async def test_embedding_kwargs_forwarded_to_zeroentropy(self):
+        """ZeroEntropy needs query/document intent to reach the adapter."""
+        from unittest.mock import AsyncMock, MagicMock, patch
+
+        mock_model = MagicMock()
+        mock_model.provider = "zeroentropy"
+        mock_model.aembed = AsyncMock(return_value=[[0.1, 0.2, 0.3]])
+
+        with patch(
+            "open_notebook.ai.models.model_manager.get_embedding_model",
+            new_callable=AsyncMock,
+            return_value=mock_model,
+        ):
+            await generate_embeddings(
+                ["search text"], embedding_kwargs={"input_type": "query"}
+            )
+            mock_model.aembed.assert_called_once_with(
+                ["search text"], input_type="query"
+            )
+
 
 # ============================================================================
 # TEST SUITE 3: Generate Single Embedding (requires mocking)

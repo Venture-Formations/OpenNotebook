@@ -7,6 +7,9 @@ import httpx
 from esperanto.providers.embedding.base import EmbeddingModel, Model
 from esperanto.utils import validate_and_decode_embedding
 
+ZEROENTROPY_API_BASE_URL = "https://api.zeroentropy.dev/v1"
+ALLOWED_DIMENSIONS = {2560, 1280, 640, 320, 160, 80, 40}
+
 
 class ZeroEntropyEmbeddingModel(EmbeddingModel):
     """Embedding adapter for ZeroEntropy's native models/embed API."""
@@ -26,23 +29,28 @@ class ZeroEntropyEmbeddingModel(EmbeddingModel):
         if not self.api_key:
             raise ValueError("ZeroEntropy API key not found")
 
+        # Do not accept credential-provided base_url for hosted ZeroEntropy.
+        # It would allow any app user with credential access to redirect future
+        # source/note embeddings plus the provider bearer token to an arbitrary URL.
+        # Admin-controlled env override remains available for regional endpoints.
         self.base_url = (
             base_url
-            or config.get("base_url")
             or os.getenv("ZEROENTROPY_BASE_URL")
-            or "https://api.zeroentropy.dev/v1"
+            or ZEROENTROPY_API_BASE_URL
         ).rstrip("/")
         self.input_type = (
             config.get("input_type")
-            or os.getenv("ZEROENTROPY_INPUT_TYPE")
             or "document"
         )
-        self.dimensions = config.get("dimensions") or os.getenv("ZEROENTROPY_DIMENSIONS")
+        self.dimensions = int(config.get("dimensions") or os.getenv("ZEROENTROPY_DIMENSIONS") or 2560)
         self.latency = config.get("latency") or os.getenv("ZEROENTROPY_LATENCY")
         timeout = float(config.get("timeout", os.getenv("ZEROENTROPY_TIMEOUT", 120.0)))
 
         if self.input_type not in {"query", "document"}:
             raise ValueError("ZeroEntropy input_type must be either 'query' or 'document'")
+        if self.dimensions not in ALLOWED_DIMENSIONS:
+            allowed = ", ".join(str(d) for d in sorted(ALLOWED_DIMENSIONS, reverse=True))
+            raise ValueError(f"ZeroEntropy dimensions must be one of: {allowed}")
 
         clean_config = {
             k: v
@@ -79,21 +87,31 @@ class ZeroEntropyEmbeddingModel(EmbeddingModel):
 
         try:
             error_data = response.json()
-            detail = error_data.get("detail") or error_data.get("message")
-            if isinstance(detail, list):
-                detail = "; ".join(str(item) for item in detail)
-            elif isinstance(detail, dict):
-                detail = detail.get("message") or str(detail)
-            error_message = detail or f"HTTP {response.status_code}"
+            code = error_data.get("code") or error_data.get("error")
+            suffix = f" ({code})" if isinstance(code, str) and code else ""
         except Exception:
-            error_message = f"HTTP {response.status_code}: {response.text}"
+            suffix = ""
+
+        if response.status_code == 401:
+            error_message = "Invalid API key"
+        elif response.status_code == 403:
+            error_message = "API key lacks required permissions"
+        elif response.status_code == 429:
+            error_message = "Rate limit exceeded"
+        else:
+            error_message = f"HTTP {response.status_code}{suffix}"
 
         raise RuntimeError(f"ZeroEntropy API error: {error_message}")
 
     def _payload(self, texts: List[str], **kwargs) -> Dict[str, Any]:
         input_type = kwargs.pop("input_type", self.input_type)
-        dimensions = kwargs.pop("dimensions", self.dimensions)
+        dimensions = int(kwargs.pop("dimensions", self.dimensions))
         latency = kwargs.pop("latency", self.latency)
+        if input_type not in {"query", "document"}:
+            raise ValueError("ZeroEntropy input_type must be either 'query' or 'document'")
+        if dimensions not in ALLOWED_DIMENSIONS:
+            allowed = ", ".join(str(d) for d in sorted(ALLOWED_DIMENSIONS, reverse=True))
+            raise ValueError(f"ZeroEntropy dimensions must be one of: {allowed}")
         payload: Dict[str, Any] = {
             "model": self.get_model_name(),
             "input_type": input_type,
@@ -101,8 +119,7 @@ class ZeroEntropyEmbeddingModel(EmbeddingModel):
             "encoding_format": "float",
             **kwargs,
         }
-        if dimensions:
-            payload["dimensions"] = int(dimensions)
+        payload["dimensions"] = dimensions
         if latency:
             payload["latency"] = latency
         return payload
@@ -115,7 +132,7 @@ class ZeroEntropyEmbeddingModel(EmbeddingModel):
             json=self._payload(texts, **kwargs),
         )
         self._handle_error(response)
-        return self._parse_response(response)
+        return self._parse_response(response, expected_count=len(texts))
 
     async def aembed(self, texts: List[str], **kwargs) -> List[List[float]]:
         texts = [self._clean_text(text) for text in texts]
@@ -125,12 +142,22 @@ class ZeroEntropyEmbeddingModel(EmbeddingModel):
             json=self._payload(texts, **kwargs),
         )
         self._handle_error(response)
-        return self._parse_response(response)
+        return self._parse_response(response, expected_count=len(texts))
 
-    def _parse_response(self, response: httpx.Response) -> List[List[float]]:
+    def _parse_response(
+        self, response: httpx.Response, expected_count: Optional[int] = None
+    ) -> List[List[float]]:
         response_data = response.json()
+        results_data = response_data.get("results")
+        if not isinstance(results_data, list):
+            raise RuntimeError("ZeroEntropy API response missing results")
+        if expected_count is not None and len(results_data) != expected_count:
+            raise RuntimeError(
+                "ZeroEntropy API returned "
+                f"{len(results_data)} embeddings for {expected_count} inputs"
+            )
         results = []
-        for idx, data in enumerate(response_data.get("results", [])):
+        for idx, data in enumerate(results_data):
             raw = data.get("embedding")
             results.append(validate_and_decode_embedding(idx, raw))
         return results
