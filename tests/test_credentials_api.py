@@ -287,12 +287,19 @@ class TestZeroEntropyProviderWiring:
             def __init__(self, model_name, config):
                 self.model_name = model_name
                 self.config = config
+                self.closed = False
 
             async def aembed(self, texts):
                 assert self.model_name == "zembed-1"
                 assert self.config == {"api_key": "ze-test"}
                 assert texts == ["This is a test."]
                 return [[0.1, 0.2, 0.3]]
+
+            async def aclose(self):
+                self.closed = True
+
+            def close(self):
+                self.closed = True
 
         monkeypatch.setattr(
             "api.credentials_service.Credential.get",

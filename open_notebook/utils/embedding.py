@@ -12,7 +12,7 @@ to ensure consistent behavior and proper handling of large content.
 
 import asyncio
 import os
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional
 
 import numpy as np
 from loguru import logger
@@ -109,7 +109,9 @@ async def mean_pool_embeddings(embeddings: List[List[float]]) -> List[float]:
 
 
 async def generate_embeddings(
-    texts: List[str], command_id: Optional[str] = None
+    texts: List[str],
+    command_id: Optional[str] = None,
+    embedding_kwargs: Optional[dict[str, Any]] = None,
 ) -> List[List[float]]:
     """
     Generate embeddings for multiple texts with automatic batching and retry.
@@ -121,6 +123,9 @@ async def generate_embeddings(
     Args:
         texts: List of text strings to embed
         command_id: Optional command ID for error logging context
+        embedding_kwargs: Optional provider-specific kwargs for embedding calls.
+            Currently only forwarded to ZeroEntropy because other providers may
+            reject unknown embedding parameters such as input_type.
 
     Returns:
         List of embedding vectors, one per input text
@@ -142,6 +147,10 @@ async def generate_embeddings(
         )
 
     model_name = getattr(embedding_model, "model_name", "unknown")
+    provider = getattr(embedding_model, "provider", None)
+    provider_kwargs = embedding_kwargs or {}
+    if provider != "zeroentropy":
+        provider_kwargs = {}
 
     # Log text sizes for debugging
     metrics: tuple[int, int, int, int] | None = None
@@ -178,7 +187,7 @@ async def generate_embeddings(
 
         for attempt in range(1, EMBEDDING_MAX_RETRIES + 1):
             try:
-                batch_embeddings = await embedding_model.aembed(batch)
+                batch_embeddings = await embedding_model.aembed(batch, **provider_kwargs)
                 all_embeddings.extend(batch_embeddings)
                 break
             except Exception as e:
@@ -211,6 +220,7 @@ async def generate_embedding(
     content_type: Optional[ContentType] = None,
     file_path: Optional[str] = None,
     command_id: Optional[str] = None,
+    embedding_kwargs: Optional[dict[str, Any]] = None,
 ) -> List[float]:
     """
     Generate a single embedding for text, handling large content via chunking and mean pooling.
@@ -228,6 +238,7 @@ async def generate_embedding(
         content_type: Optional explicit content type for chunking
         file_path: Optional file path for content type detection
         command_id: Optional command ID for error logging context
+        embedding_kwargs: Optional provider-specific kwargs for embedding calls.
 
     Returns:
         Single embedding vector (list of floats)
@@ -246,7 +257,9 @@ async def generate_embedding(
     if text_tokens <= CHUNK_SIZE:
         # Short text - embed directly
         logger.debug(f"Embedding short text ({text_tokens} tokens) directly")
-        embeddings = await generate_embeddings([text], command_id=command_id)
+        embeddings = await generate_embeddings(
+            [text], command_id=command_id, embedding_kwargs=embedding_kwargs
+        )
         return embeddings[0]
 
     # Long text - chunk and mean pool
@@ -259,13 +272,17 @@ async def generate_embedding(
 
     if len(chunks) == 1:
         # Single chunk after splitting
-        embeddings = await generate_embeddings(chunks, command_id=command_id)
+        embeddings = await generate_embeddings(
+            chunks, command_id=command_id, embedding_kwargs=embedding_kwargs
+        )
         return embeddings[0]
 
     logger.debug(f"Embedding {len(chunks)} chunks and mean pooling")
 
     # Embed all chunks in batches
-    embeddings = await generate_embeddings(chunks, command_id=command_id)
+    embeddings = await generate_embeddings(
+        chunks, command_id=command_id, embedding_kwargs=embedding_kwargs
+    )
 
     # Mean pool to get single embedding
     pooled = await mean_pool_embeddings(embeddings)

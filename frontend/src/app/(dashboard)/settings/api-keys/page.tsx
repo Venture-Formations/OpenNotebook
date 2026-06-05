@@ -179,6 +179,7 @@ function CredentialFormDialog({
   const isVertex = provider === 'vertex'
   const isOllama = provider === 'ollama'
   const isOpenAICompatible = provider === 'openai_compatible'
+  const isZeroEntropy = provider === 'zeroentropy'
   const requiresApiKey = !isVertex && !isOllama && !isOpenAICompatible
 
   const [name, setName] = useState('')
@@ -367,7 +368,7 @@ function CredentialFormDialog({
           )}
 
           {/* Base URL (non-Vertex) */}
-          {!isVertex && (
+          {!isVertex && !isZeroEntropy && (
             <div className="space-y-2">
               <Label htmlFor="base-url" className="text-muted-foreground">{t('apiKeys.baseUrl')}</Label>
               <input

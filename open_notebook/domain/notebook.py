@@ -660,7 +660,9 @@ async def vector_search(
         from open_notebook.utils.embedding import generate_embedding
 
         # Use unified embedding function (handles chunking if query is very long)
-        embed = await generate_embedding(keyword)
+        embed = await generate_embedding(
+            keyword, embedding_kwargs={"input_type": "query"}
+        )
         search_results = await repo_query(
             """
             SELECT * FROM fn::vector_search($embed, $results, $source, $note, $minimum_score);
