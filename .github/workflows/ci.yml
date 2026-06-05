@@ -95,9 +95,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build image
+      - name: Build Open Notebook image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: false
           tags: open-notebook:ci
+
+      - name: Build SurrealDB image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.surrealdb
+          push: false
+          tags: open-notebook-surrealdb:ci

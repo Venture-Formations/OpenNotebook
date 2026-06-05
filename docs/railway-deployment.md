@@ -14,6 +14,7 @@ This fork deploys Open Notebook from the `railway` branch to Railway behind a Gi
 - `gateway` is the only public service. It runs OAuth2 Proxy and restricts access to the `Venture-Formations` GitHub organization.
 - `open-notebook` is private, listens on port `8502`, and runs the upstream Dockerfile without a custom start command.
 - `surrealdb` is private, listens on port `8000`, and stores data on `/mydata`.
+  It builds from `Dockerfile.surrealdb`, which pins the tested SurrealDB image digest and runs as root so Railway's mounted volume is writable.
 - `open-notebook` stores uploads and local checkpoints on `/app/data`.
 
 Do not create public domains or TCP proxies for `open-notebook` or `surrealdb`.

@@ -1,0 +1,8 @@
+FROM surrealdb/surrealdb@sha256:421b7661c3174f51fd70f36abe9ee1e48e5fd684fadc1e362d232ee3b51b1b72
+
+# Railway mounts volumes as root-owned paths. The upstream image runs as a
+# non-root user, which cannot initialize the mounted datastore directory.
+USER root
+
+ENTRYPOINT ["/surreal"]
+CMD ["start", "--bind", "0.0.0.0:8000", "--log", "info", "rocksdb:/mydata/mydatabase.db?sync=every"]
