@@ -58,11 +58,19 @@ Railway service config:
 - `OAUTH2_PROXY_PROVIDER=github`
 - `OAUTH2_PROXY_GITHUB_ORG=Venture-Formations`
 - `OAUTH2_PROXY_EMAIL_DOMAINS=*`
+- `OAUTH2_PROXY_SCOPE=read:org user:email`
 - `OAUTH2_PROXY_COOKIE_SECURE=true`
 - `OAUTH2_PROXY_COOKIE_SECRET=<sealed secret>`
 - `OAUTH2_PROXY_CLIENT_ID=<GitHub OAuth app client id>`
 - `OAUTH2_PROXY_CLIENT_SECRET=<GitHub OAuth app client secret>`
 - `OAUTH2_PROXY_REDIRECT_URL=https://${{gateway.RAILWAY_PUBLIC_DOMAIN}}/oauth2/callback`
+
+Railway service config:
+
+- Source image: `quay.io/oauth2-proxy/oauth2-proxy@sha256:5896859c3ee58eebb4f6911973cba52b6a6858228be9bc740a145ff9db82dfae`
+- Health check path: `/ping`
+- Public URL: `https://gateway-production-2d79.up.railway.app`
+- GitHub OAuth callback URL: `https://gateway-production-2d79.up.railway.app/oauth2/callback`
 
 ## Recovery Rules
 
