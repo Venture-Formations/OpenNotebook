@@ -248,6 +248,70 @@ class TestAudioProviderWiring:
         assert TEST_MODELS["deepgram"][1] == "text_to_speech"
 
 
+class TestZeroEntropyProviderWiring:
+    """Tests for ZeroEntropy zembed-1 embedding support."""
+
+    def test_zeroentropy_provider_maps(self):
+        from api.credentials_service import PROVIDER_ENV_CONFIG, PROVIDER_MODALITIES
+        from open_notebook.ai.connection_tester import TEST_MODELS
+        from open_notebook.ai.model_discovery import classify_model_type
+
+        assert PROVIDER_ENV_CONFIG["zeroentropy"]["required"] == ["ZEROENTROPY_API_KEY"]
+        assert PROVIDER_MODALITIES["zeroentropy"] == ["embedding"]
+        assert TEST_MODELS["zeroentropy"] == ("zembed-1", "embedding")
+        assert classify_model_type("zembed-1", "zeroentropy") == "embedding"
+
+    @pytest.mark.asyncio
+    async def test_zeroentropy_discovery_requires_api_key(self, monkeypatch):
+        from open_notebook.ai.model_discovery import discover_provider_models
+
+        monkeypatch.delenv("ZEROENTROPY_API_KEY", raising=False)
+        assert await discover_provider_models("zeroentropy") == []
+
+        monkeypatch.setenv("ZEROENTROPY_API_KEY", "ze-test")
+        models = await discover_provider_models("zeroentropy")
+
+        assert [(m.name, m.provider, m.model_type) for m in models] == [
+            ("zembed-1", "zeroentropy", "embedding")
+        ]
+
+    @pytest.mark.asyncio
+    async def test_zeroentropy_credential_test_uses_custom_adapter(self, monkeypatch):
+        class FakeCredential:
+            provider = "zeroentropy"
+
+            def to_esperanto_config(self):
+                return {"api_key": "ze-test"}
+
+        class FakeZeroEntropyEmbeddingModel:
+            def __init__(self, model_name, config):
+                self.model_name = model_name
+                self.config = config
+
+            async def aembed(self, texts):
+                assert self.model_name == "zembed-1"
+                assert self.config == {"api_key": "ze-test"}
+                assert texts == ["This is a test."]
+                return [[0.1, 0.2, 0.3]]
+
+        monkeypatch.setattr(
+            "api.credentials_service.Credential.get",
+            AsyncMock(return_value=FakeCredential()),
+        )
+        monkeypatch.setattr(
+            "open_notebook.ai.zeroentropy.ZeroEntropyEmbeddingModel",
+            FakeZeroEntropyEmbeddingModel,
+        )
+
+        result = await credentials_service.test_credential("credential:zeroentropy")
+
+        assert result == {
+            "provider": "zeroentropy",
+            "success": True,
+            "message": "Embedding dimensions: 3",
+        }
+
+
 class TestAudioMatrixWiring:
     """Tests for completing the audio matrix (Google/Vertex TTS, Google/ElevenLabs STT)."""
 

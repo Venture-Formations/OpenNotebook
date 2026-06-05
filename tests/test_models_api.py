@@ -389,3 +389,25 @@ class TestModelsProviderAvailability:
         # Should support only text_to_speech
         supported = data["supported_types"]["openai_compatible"]
         assert supported == ["text_to_speech"]
+
+    @patch("api.routers.models.os.environ.get")
+    @patch("api.routers.models.AIFactory.get_available_providers")
+    def test_zeroentropy_available_as_embedding_only(
+        self, mock_esperanto, mock_env, client
+    ):
+        """Test that ZeroEntropy is exposed as an embedding-only provider."""
+
+        def env_side_effect(key):
+            if key == "ZEROENTROPY_API_KEY":
+                return "ze-test"
+            return None
+
+        mock_env.side_effect = env_side_effect
+        mock_esperanto.return_value = {}
+
+        response = client.get("/api/models/providers")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "zeroentropy" in data["available"]
+        assert data["supported_types"]["zeroentropy"] == ["embedding"]

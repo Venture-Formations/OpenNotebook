@@ -54,6 +54,9 @@ PROVIDER_CONFIG = {
     "voyage": {
         "env_var": "VOYAGE_API_KEY",
     },
+    "zeroentropy": {
+        "env_var": "ZEROENTROPY_API_KEY",
+    },
     "elevenlabs": {
         "env_var": "ELEVENLABS_API_KEY",
     },

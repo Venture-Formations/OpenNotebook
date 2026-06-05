@@ -71,6 +71,7 @@ const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
   xai: 'xAI (Grok)',
   openrouter: 'OpenRouter',
   voyage: 'Voyage AI',
+  zeroentropy: 'ZeroEntropy',
   elevenlabs: 'ElevenLabs',
   deepgram: 'Deepgram',
   ollama: 'Ollama',
@@ -84,7 +85,7 @@ const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
 // All providers in display order
 const ALL_PROVIDERS = [
   'openai', 'anthropic', 'google', 'groq', 'mistral', 'deepseek',
-  'xai', 'openrouter', 'dashscope', 'minimax', 'voyage', 'elevenlabs', 'deepgram', 'ollama',
+  'xai', 'openrouter', 'dashscope', 'minimax', 'voyage', 'zeroentropy', 'elevenlabs', 'deepgram', 'ollama',
   'azure', 'vertex', 'openai_compatible',
 ]
 
@@ -99,6 +100,7 @@ const PROVIDER_MODALITIES: Record<string, ModelType[]> = {
   xai: ['language', 'text_to_speech'],
   openrouter: ['language', 'embedding'],
   voyage: ['embedding'],
+  zeroentropy: ['embedding'],
   elevenlabs: ['text_to_speech', 'speech_to_text'],
   deepgram: ['text_to_speech'],
   ollama: ['language', 'embedding'],
@@ -120,6 +122,7 @@ const PROVIDER_DOCS: Record<string, string> = {
   xai: 'https://console.x.ai/',
   openrouter: 'https://openrouter.ai/keys',
   voyage: 'https://dash.voyageai.com/api-keys',
+  zeroentropy: 'https://dashboard.zeroentropy.dev/',
   elevenlabs: 'https://elevenlabs.io/app/settings/api-keys',
   deepgram: 'https://console.deepgram.com/',
   azure: 'https://portal.azure.com/#view/Microsoft_Azure_ProjectOxford/CognitiveServicesHub/~/OpenAI',

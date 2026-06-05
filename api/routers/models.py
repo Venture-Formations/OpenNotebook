@@ -380,6 +380,7 @@ async def get_provider_availability():
             "xai": "XAI_API_KEY",
             "openrouter": "OPENROUTER_API_KEY",
             "voyage": "VOYAGE_API_KEY",
+            "zeroentropy": "ZEROENTROPY_API_KEY",
             "elevenlabs": "ELEVENLABS_API_KEY",
             "deepgram": "DEEPGRAM_API_KEY",
             "ollama": "OLLAMA_API_BASE",
@@ -465,6 +466,8 @@ async def get_provider_availability():
                     ):
                         if has_db_cred or _check_azure_support(mode):
                             supported_types[provider].append(model_type)
+            elif provider == "zeroentropy":
+                supported_types[provider].append("embedding")
             else:
                 # Standard provider detection
                 for model_type, providers in esperanto_available.items():
