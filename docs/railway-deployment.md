@@ -64,6 +64,12 @@ Railway service config:
 - `OAUTH2_PROXY_CLIENT_ID=<GitHub OAuth app client id>`
 - `OAUTH2_PROXY_CLIENT_SECRET=<GitHub OAuth app client secret>`
 - `OAUTH2_PROXY_REDIRECT_URL=https://${{gateway.RAILWAY_PUBLIC_DOMAIN}}/oauth2/callback`
+- `OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER=false`
+
+Leave `OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER` disabled. Open Notebook uses the
+browser request's `Authorization: Bearer <OPEN_NOTEBOOK_PASSWORD>` header for its
+second password gate, and oauth2-proxy must not replace that header with OAuth
+identity data.
 
 Railway service config:
 
