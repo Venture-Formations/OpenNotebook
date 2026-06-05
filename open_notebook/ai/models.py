@@ -155,6 +155,10 @@ class ModelManager:
                 config=config,
             )
         elif model.type == "embedding":
+            if provider == "zeroentropy":
+                from open_notebook.ai.zeroentropy import ZeroEntropyEmbeddingModel
+
+                return ZeroEntropyEmbeddingModel(model_name=model.name, config=config)
             return AIFactory.create_embedding(
                 model_name=model.name,
                 provider=provider,

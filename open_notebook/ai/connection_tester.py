@@ -25,6 +25,7 @@ TEST_MODELS = {
     "xai": ("grok-beta", "language"),
     "openrouter": ("openai/gpt-3.5-turbo", "language"),
     "voyage": ("voyage-3-lite", "embedding"),
+    "zeroentropy": ("zembed-1", "embedding"),
     "elevenlabs": ("eleven_multilingual_v2", "text_to_speech"),
     "deepgram": ("aura-2-thalia-en", "text_to_speech"),
     "ollama": (None, "language"),  # Dynamic - will use first available model

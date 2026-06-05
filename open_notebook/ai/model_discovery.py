@@ -136,6 +136,10 @@ VOYAGE_MODEL_TYPES = {
     "embedding": ["voyage"],
 }
 
+ZEROENTROPY_MODEL_TYPES = {
+    "embedding": ["zembed"],
+}
+
 ELEVENLABS_MODEL_TYPES = {
     "text_to_speech": ["eleven"],
     "speech_to_text": ["scribe"],
@@ -171,6 +175,7 @@ def classify_model_type(model_name: str, provider: str) -> str:
         "deepseek": DEEPSEEK_MODEL_TYPES,
         "xai": XAI_MODEL_TYPES,
         "voyage": VOYAGE_MODEL_TYPES,
+        "zeroentropy": ZEROENTROPY_MODEL_TYPES,
         "elevenlabs": ELEVENLABS_MODEL_TYPES,
         "deepgram": DEEPGRAM_MODEL_TYPES,
         "dashscope": DASHSCOPE_MODEL_TYPES,
@@ -522,6 +527,17 @@ async def discover_voyage_models() -> List[DiscoveredModel]:
     ]
 
 
+async def discover_zeroentropy_models() -> List[DiscoveredModel]:
+    """Return static list of ZeroEntropy embedding models."""
+    api_key = os.environ.get("ZEROENTROPY_API_KEY")
+    if not api_key:
+        return []
+
+    return [
+        DiscoveredModel(name="zembed-1", provider="zeroentropy", model_type="embedding")
+    ]
+
+
 async def discover_elevenlabs_models() -> List[DiscoveredModel]:
     """Return static list of ElevenLabs TTS models."""
     api_key = os.environ.get("ELEVENLABS_API_KEY")
@@ -727,6 +743,7 @@ PROVIDER_DISCOVERY_FUNCTIONS = {
     "xai": discover_xai_models,
     "openrouter": discover_openrouter_models,
     "voyage": discover_voyage_models,
+    "zeroentropy": discover_zeroentropy_models,
     "elevenlabs": discover_elevenlabs_models,
     "deepgram": discover_deepgram_models,
     "openai_compatible": discover_openai_compatible_models,

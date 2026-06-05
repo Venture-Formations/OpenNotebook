@@ -40,6 +40,7 @@ PROVIDER_ENV_CONFIG: Dict[str, dict] = {
     "xai": {"required": ["XAI_API_KEY"]},
     "openrouter": {"required": ["OPENROUTER_API_KEY"]},
     "voyage": {"required": ["VOYAGE_API_KEY"]},
+    "zeroentropy": {"required": ["ZEROENTROPY_API_KEY"]},
     "elevenlabs": {"required": ["ELEVENLABS_API_KEY"]},
     "deepgram": {"required": ["DEEPGRAM_API_KEY"]},
     "ollama": {"required": ["OLLAMA_API_BASE"]},
@@ -73,6 +74,7 @@ PROVIDER_MODALITIES: Dict[str, List[str]] = {
     "xai": ["language", "text_to_speech"],
     "openrouter": ["language"],
     "voyage": ["embedding"],
+    "zeroentropy": ["embedding"],
     "elevenlabs": ["text_to_speech", "speech_to_text"],
     "deepgram": ["text_to_speech"],
     "ollama": ["language", "embedding"],
@@ -409,6 +411,23 @@ async def test_credential(credential_id: str) -> dict:
             )
             return {"provider": provider, "success": success, "message": message}
 
+        if provider == "zeroentropy":
+            from open_notebook.ai.zeroentropy import ZeroEntropyEmbeddingModel
+
+            model = ZeroEntropyEmbeddingModel(model_name="zembed-1", config=config)
+            result = await model.aembed(["This is a test."])
+            if result and len(result) > 0:
+                return {
+                    "provider": provider,
+                    "success": True,
+                    "message": f"Embedding dimensions: {len(result[0])}",
+                }
+            return {
+                "provider": provider,
+                "success": True,
+                "message": "Connection successful",
+            }
+
         # Standard provider: use Esperanto to create and test
         from esperanto.factory import AIFactory
 
@@ -505,6 +524,7 @@ async def discover_with_config(provider: str, config: dict) -> List[dict]:
             "voyage-3", "voyage-3-lite", "voyage-code-3",
             "voyage-finance-2", "voyage-law-2", "voyage-multilingual-2",
         ],
+        "zeroentropy": ["zembed-1"],
         "elevenlabs": [
             "eleven_multilingual_v2", "eleven_turbo_v2_5",
             "eleven_turbo_v2", "eleven_monolingual_v1",
