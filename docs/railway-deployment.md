@@ -14,6 +14,7 @@ This fork deploys Open Notebook from the `railway` branch to Railway behind a Gi
 - `gateway` is the only public service. It runs OAuth2 Proxy and restricts access to the `Venture-Formations` GitHub organization.
 - `open-notebook` is private, listens on port `8502`, and runs the upstream Dockerfile without a custom start command.
 - `surrealdb` is private, listens on port `8000`, and stores data on `/mydata`.
+  It builds from `Dockerfile.surrealdb`, which pins the tested SurrealDB image digest and runs as root so Railway's mounted volume is writable.
 - `open-notebook` stores uploads and local checkpoints on `/app/data`.
 
 Do not create public domains or TCP proxies for `open-notebook` or `surrealdb`.
@@ -26,6 +27,13 @@ Do not create public domains or TCP proxies for `open-notebook` or `surrealdb`.
 - `SURREAL_USER=root`
 - `SURREAL_PASS=<sealed secret>`
 - `SURREAL_SYNC_DATA=true`
+
+Railway service config:
+
+- Source: `Venture-Formations/OpenNotebook`
+- Dockerfile path: `/Dockerfile.surrealdb`
+- Start command: `/surreal start --bind 0.0.0.0:8000 --log info rocksdb:/mydata/mydatabase.db?sync=every`
+- Health check path: `/health`
 
 `open-notebook`:
 
@@ -50,11 +58,19 @@ Do not create public domains or TCP proxies for `open-notebook` or `surrealdb`.
 - `OAUTH2_PROXY_PROVIDER=github`
 - `OAUTH2_PROXY_GITHUB_ORG=Venture-Formations`
 - `OAUTH2_PROXY_EMAIL_DOMAINS=*`
+- `OAUTH2_PROXY_SCOPE=read:org user:email`
 - `OAUTH2_PROXY_COOKIE_SECURE=true`
-- `OAUTH2_PROXY_COOKIE_SECRET=<sealed secret>`
+- `OAUTH2_PROXY_COOKIE_SECRET=<sealed 32-character hex secret>`
 - `OAUTH2_PROXY_CLIENT_ID=<GitHub OAuth app client id>`
 - `OAUTH2_PROXY_CLIENT_SECRET=<GitHub OAuth app client secret>`
 - `OAUTH2_PROXY_REDIRECT_URL=https://${{gateway.RAILWAY_PUBLIC_DOMAIN}}/oauth2/callback`
+
+Railway service config:
+
+- Source image: `quay.io/oauth2-proxy/oauth2-proxy:v7.15.2`
+- Health check path: `/ping`
+- Public URL: `https://gateway-production-2d79.up.railway.app`
+- GitHub OAuth callback URL: `https://gateway-production-2d79.up.railway.app/oauth2/callback`
 
 ## Recovery Rules
 
