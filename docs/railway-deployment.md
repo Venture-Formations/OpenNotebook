@@ -28,6 +28,13 @@ Do not create public domains or TCP proxies for `open-notebook` or `surrealdb`.
 - `SURREAL_PASS=<sealed secret>`
 - `SURREAL_SYNC_DATA=true`
 
+Railway service config:
+
+- Source: `Venture-Formations/OpenNotebook`
+- Dockerfile path: `/Dockerfile.surrealdb`
+- Start command: `/surreal start --bind 0.0.0.0:8000 --log info rocksdb:/mydata/mydatabase.db?sync=every`
+- Health check path: `/health`
+
 `open-notebook`:
 
 - `PORT=8502`
