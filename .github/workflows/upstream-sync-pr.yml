@@ -31,7 +31,28 @@ jobs:
           git remote add upstream https://github.com/lfnovo/open-notebook.git
           git fetch upstream main --tags
           git checkout -B upstream-sync/railway railway
-          git merge --no-edit upstream/main
+          expected_conflicts=(
+            .github/workflows/build-and-release.yml
+            .github/workflows/build-dev.yml
+            .github/workflows/test.yml
+          )
+
+          if git merge --no-commit --no-ff upstream/main; then
+            git commit --no-edit
+            exit 0
+          fi
+
+          unmerged="$(git diff --name-only --diff-filter=U | sort)"
+          expected="$(printf '%s\n' "${expected_conflicts[@]}" | sort)"
+
+          if [ "$unmerged" != "$expected" ]; then
+            echo "Unexpected merge conflicts:"
+            printf '  %s\n' "$unmerged"
+            exit 1
+          fi
+
+          git rm -- "${expected_conflicts[@]}"
+          git commit --no-edit
 
       - name: Push sync branch
         run: git push --force-with-lease origin upstream-sync/railway
